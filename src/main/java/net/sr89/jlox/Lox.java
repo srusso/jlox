@@ -7,9 +7,11 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import static net.sr89.jlox.ExitConstants.EX_DATAERR;
+import static net.sr89.jlox.ExitConstants.EX_USAGE;
+
 public class Lox {
-    // see https://man.openbsd.org/sysexits
-    private final static int EX_USAGE = 64;
+    static boolean hadError = false;
 
     public static void main(String[] args) throws IOException {
         if (args.length > 1) {
@@ -26,6 +28,9 @@ public class Lox {
         run(
             Files.readString(Paths.get(path), Charset.defaultCharset())
         );
+        if (hadError) {
+            System.exit(EX_DATAERR);
+        }
     }
 
     private static void runPrompt() throws IOException {
@@ -42,6 +47,7 @@ public class Lox {
                 break;
             }
             run(line);
+            hadError = false;
         }
     }
 
@@ -52,5 +58,14 @@ public class Lox {
         for (Token token : tokens) {
             System.out.println(token);
         }
+    }
+
+    static void error(int line, String message) {
+        report(line, "", message);
+    }
+
+    static void report(int line, String where, String message) {
+        System.out.println("[line " + line + "] Error" + where + ": " + message);
+        hadError = true;
     }
 }

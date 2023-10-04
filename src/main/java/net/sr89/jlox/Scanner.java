@@ -55,8 +55,26 @@ public class Scanner {
             case ' ', '\r', '\t' -> {}
             case '\n' -> line++;
             case '"' -> string();
+            case '1', '2', '3', '4', '5', '6', '7', '8', '9' -> number();
             default -> Lox.error(line, "Unexpected character.");
         }
+    }
+
+    private void number() {
+        while (isDigit(peek())) advance();
+
+        if (peek() == '.' && isDigit(peekNext())) {
+            // consume the dot .
+            advance();
+
+            while (isDigit(peek())) advance();
+        }
+
+        addToken(NUMBER, Double.parseDouble(source.substring(start, current)));
+    }
+
+    private boolean isDigit(char c) {
+        return c >= '0' && c <= '9';
     }
 
     private void string() {
@@ -90,6 +108,12 @@ public class Scanner {
         if (isAtEnd()) return '\0';
 
         return source.charAt(current);
+    }
+
+    private char peekNext() {
+        if (current + 1 >= source.length()) return '\0';
+
+        return source.charAt(current + 1);
     }
 
     private char advance() {

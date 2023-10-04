@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 
 import static net.sr89.jlox.ExitConstants.EX_DATAERR;
 import static net.sr89.jlox.ExitConstants.EX_USAGE;
@@ -37,7 +38,7 @@ public class Lox {
         InputStreamReader input = new InputStreamReader(System.in);
         BufferedReader reader = new BufferedReader(input);
 
-        System.out.println("Welxome to the jlox REPL.");
+        System.out.println("Welcome to the jlox REPL.");
         System.out.println("Exit with Control-D");
 
         while (true) {

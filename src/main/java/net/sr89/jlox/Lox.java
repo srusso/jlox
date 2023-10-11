@@ -8,8 +8,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
-import static net.sr89.jlox.ExitConstants.EX_DATAERR;
-import static net.sr89.jlox.ExitConstants.EX_USAGE;
+import static net.sr89.common.ExitConstants.EX_DATAERR;
+import static net.sr89.common.ExitConstants.EX_USAGE;
 
 public class Lox {
     static boolean hadError = false;

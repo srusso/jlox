@@ -1,4 +1,4 @@
-package net.sr89.jlox;
+package net.sr89.common;
 
 /**
  * See <a href="https://man.openbsd.org/sysexits">sysexits</a>
@@ -6,6 +6,6 @@ package net.sr89.jlox;
 public class ExitConstants {
     private ExitConstants() {}
 
-    final static int EX_USAGE = 64;
-    final static int EX_DATAERR = 65;
+    public final static int EX_USAGE = 64;
+    public final static int EX_DATAERR = 65;
 }

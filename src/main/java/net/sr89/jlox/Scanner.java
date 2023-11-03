@@ -7,6 +7,11 @@ import java.util.Map;
 
 import static net.sr89.jlox.TokenType.*;
 
+/**
+ * Transforms a list of characters (the code!) into a list of tokens.
+ * <p></p>
+ * Tokens are then passed to the {@link Parser}.
+ */
 public class Scanner {
     private static final Map<String, TokenType> keywords;
 

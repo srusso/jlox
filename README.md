@@ -4,4 +4,4 @@ The jlox interpreter from the book [Crafting Interpreters](https://craftinginter
 
 Next up:
 
--- http://craftinginterpreters.com/representing-code.html#working-with-trees
+-- http://craftinginterpreters.com/parsing-expressions.html#syntax-errors

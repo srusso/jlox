@@ -20,6 +20,8 @@ import static net.sr89.jlox.TokenType.*;
  *                | "(" expression ")" ;
  */
 public class Parser {
+    private static class ParseError extends RuntimeException {}
+
     private final List<Token> tokens;
 
     // index of the next token to parse
@@ -27,6 +29,14 @@ public class Parser {
 
     Parser(List<Token> tokens) {
         this.tokens = tokens;
+    }
+
+    Expr parse() {
+        try {
+            return expression();
+        } catch (ParseError e) {
+            return null;
+        }
     }
 
     // implements grammar rule:
@@ -122,6 +132,8 @@ public class Parser {
             consume(RIGHT_PAREN, "Expect ')' after an expression.");
             return new Expr.Grouping(expr);
         }
+
+        throw error(peek(), "Expect expression.");
     }
 
     // Checks whether the current token is of any of the given types.
@@ -135,6 +147,14 @@ public class Parser {
             }
         }
         return false;
+    }
+
+    private Token consume(TokenType tokenToConsume, String errorMessage) {
+        if (check(tokenToConsume)) {
+            return advance();
+        }
+
+        throw error(peek(), errorMessage);
     }
 
     // Returns true if the current token is of the wanted type.
@@ -166,5 +186,37 @@ public class Parser {
 
     private Token previous() {
         return tokens.get(current - 1);
+    }
+
+    private ParseError error(Token token, String message) {
+        Lox.error(token, message);
+        return new ParseError();
+    }
+
+    /*
+    When we encounter a parsing error, we want to try to find the end of the current statement,
+    consume and disregard any tokens in that statement.
+    Then we want to simply keep going.
+     */
+    private void synchronize() {
+        advance();
+
+        while(!isAtEnd()) {
+            if (previous().type == SEMICOLON) {
+                // We found the end of the statement (aka a semicolon).
+                // Let's keep going.
+                return;
+            }
+
+            switch (peek().type) {
+                // We found the start of a new statement.
+                // Let's keep going. Note that in this case, the token wasn't consumed,
+                // because it's part of that new statement.
+                case CLASS, FUN, VAR, FOR, IF, WHILE, PRINT, RETURN:
+                    return;
+            }
+
+            advance();
+        }
     }
 }

@@ -9,6 +9,11 @@ import static net.sr89.jlox.TokenType.*;
  * <p></p>
  * Implements the following grammar, from <a href="http://craftinginterpreters.com/parsing-expressions.html#ambiguity-and-the-parsing-game">this chapter</a>:
  * <p></p>
+ * program        → statement* EOF ;
+ * statement      → exprStmt
+ *                | printStmt ;
+ * exprStmt       → expression ";" ;
+ * printStmt      → "print" expression ";" ;
  * expression     → equality ;
  * equality       → comparison ( ( "!=" | "==" ) comparison )* ;
  * comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;

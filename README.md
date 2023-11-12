@@ -4,4 +4,4 @@ The jlox interpreter from the book [Crafting Interpreters](https://craftinginter
 
 Next up:
 
--- http://craftinginterpreters.com/statements-and-state.html#assignment-semantics
+-- http://craftinginterpreters.com/control-flow.html#turing-machines-briefly

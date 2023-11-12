@@ -1,5 +1,6 @@
 package net.sr89.jlox;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static net.sr89.jlox.TokenType.*;
@@ -36,18 +37,42 @@ public class Parser {
         this.tokens = tokens;
     }
 
-    Expr parse() {
-        try {
-            return expression();
-        } catch (ParseError e) {
-            return null;
+    List<Stmt> parse() {
+        List<Stmt> statements = new ArrayList<>();
+
+        // the program is just a list of statements! see grammar rule:
+        // program        → statement* EOF ;
+        while(!isAtEnd()) {
+            statements.add(statement());
         }
+
+        return statements;
     }
 
     // implements grammar rule:
     // expression → equality ;
     private Expr expression() {
         return equality();
+    }
+
+    private Stmt statement() {
+        if(match(PRINT)) {
+            return printStatement();
+        } else {
+            return expressionStatement();
+        }
+    }
+
+    private Stmt expressionStatement() {
+        Expr expr = expression();
+        consume(SEMICOLON, "Expect ';' after expression.");
+        return new Stmt.Expression(expr);
+    }
+
+    private Stmt printStatement() {
+        Expr value = expression();
+        consume(SEMICOLON, "Expect ';' after value.");
+        return new Stmt.Print(value);
     }
 
     // implements:

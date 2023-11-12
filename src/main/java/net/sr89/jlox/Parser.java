@@ -18,7 +18,9 @@ import static net.sr89.jlox.TokenType.*;
  *                | printStmt ;
  * exprStmt       → expression ";" ;
  * printStmt      → "print" expression ";" ;
- * expression     → equality ;
+ * expression     → assignment ;
+ * assignment     → IDENTIFIER "=" assignment
+ *                | equality;
  * equality       → comparison ( ( "!=" | "==" ) comparison )* ;
  * comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
  * term           → factor ( ( "-" | "+" ) factor )* ;
@@ -53,10 +55,32 @@ public class Parser {
         return statements;
     }
 
-    // implements grammar rule:
-    // expression → equality ;
+    // implements grammar rule for expression
     private Expr expression() {
-        return equality();
+        return assignment();
+    }
+
+    // see http://craftinginterpreters.com/statements-and-state.html#assignment-syntax
+    private Expr assignment() {
+        Expr expr = equality();
+
+        if (match(EQUAL)) {
+            Token equals = previous();
+
+            // One slight difference from binary operators is that we don’t loop
+            // to build up a sequence of the same operator. Since assignment is right-associative,
+            // we instead recursively call assignment() to parse the right-hand side.
+            Expr value = assignment();
+
+            if (expr instanceof Expr.Variable) {
+                Token name = ((Expr.Variable)expr).name;
+                return new Expr.Assign(name, value);
+            }
+
+            error(equals, "Invalid assignment target.");
+        }
+
+        return expr;
     }
 
     private Stmt declaration() {

@@ -47,7 +47,7 @@ public class Parser {
         // the program is just a list of statements! see grammar rule:
         // program        → statement* EOF ;
         while(!isAtEnd()) {
-            statements.add(statement());
+            statements.add(declaration());
         }
 
         return statements;
@@ -57,6 +57,33 @@ public class Parser {
     // expression → equality ;
     private Expr expression() {
         return equality();
+    }
+
+    private Stmt declaration() {
+        try {
+            if (match(VAR)) {
+                return varDeclaration();
+            } else {
+                return statement();
+            }
+        } catch (ParseError e) {
+            synchronize();
+            return null;
+        }
+    }
+
+    private Stmt varDeclaration() {
+        Token name = consume(IDENTIFIER, "Expect variable name.");
+
+        final Expr initializer;
+        if (match(EQUAL)) {
+            initializer = expression();
+        } else {
+            initializer = null;
+        }
+
+        consume(SEMICOLON, "Expect ';' after variable declaration.");
+        return new Stmt.Var(name, initializer);
     }
 
     private Stmt statement() {
@@ -152,6 +179,7 @@ public class Parser {
     // implements:
     // primary  → NUMBER | STRING | "true" | "false" | "nil"
     //          | "(" expression ")" ;
+    //          | IDENTIFIER
     private Expr primary() {
         if (match(FALSE)) return new Expr.Literal(false);
         if (match(TRUE)) return new Expr.Literal(true);
@@ -159,6 +187,10 @@ public class Parser {
 
         if(match(NUMBER, STRING)) {
             return new Expr.Literal(previous().literal);
+        }
+
+        if (match(IDENTIFIER)) {
+            return new Expr.Variable(previous());
         }
 
         if (match(LEFT_PAREN)) {

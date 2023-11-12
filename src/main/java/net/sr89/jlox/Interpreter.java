@@ -3,6 +3,7 @@ package net.sr89.jlox;
 import java.util.List;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
+    private final Environment environment = new Environment();
 
     void interpret(List<Stmt> statements) {
         try {
@@ -88,6 +89,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return null;
     }
 
+    @Override
+    public Object visitVariableExpr(Expr.Variable variable) {
+        return environment.get(variable.name);
+    }
+
     private void checkNumberOperand(Token operator, Object operand) {
         if (operand instanceof Double) return;
         throw new RuntimeError(operator, "Operand must be a number.");
@@ -145,6 +151,21 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Void visitPrintStmt(Stmt.Print stmt) {
         System.out.println(stringify(evaluate(stmt.expression)));
+        return null;
+    }
+
+    @Override
+    public Void visitVarStmt(Stmt.Var stmt) {
+        final Object value;
+
+        if (stmt.initializer != null) {
+            value = evaluate(stmt.initializer);
+        } else {
+            value = null;
+        }
+
+        environment.define(stmt.name.lexeme, value);
+
         return null;
     }
 }

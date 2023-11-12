@@ -10,7 +10,10 @@ import static net.sr89.jlox.TokenType.*;
  * <p></p>
  * Implements the following grammar, from <a href="http://craftinginterpreters.com/parsing-expressions.html#ambiguity-and-the-parsing-game">this chapter</a>:
  * <p></p>
- * program        → statement* EOF ;
+ * program        → declaration* EOF ;
+ * declaration    → varDecl
+ *                | statement ;
+ * varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
  * statement      → exprStmt
  *                | printStmt ;
  * exprStmt       → expression ";" ;
@@ -23,7 +26,8 @@ import static net.sr89.jlox.TokenType.*;
  * unary          → ( "!" | "-" ) unary
  *                | primary ;
  * primary        → NUMBER | STRING | "true" | "false" | "nil"
- *                | "(" expression ")" ;
+ *                | "(" expression ")"
+ *                | IDENTIFIER;
  */
 public class Parser {
     private static class ParseError extends RuntimeException {}

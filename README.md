@@ -4,4 +4,4 @@ The jlox interpreter from the book [Crafting Interpreters](https://craftinginter
 
 Next up:
 
--- http://craftinginterpreters.com/statements-and-state.html#statement-syntax-trees
+-- http://craftinginterpreters.com/statements-and-state.html#assignment-syntax

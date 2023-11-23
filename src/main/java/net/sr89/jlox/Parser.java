@@ -15,26 +15,34 @@ import static net.sr89.jlox.TokenType.*;
  *                | statement ;
  * varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
  * statement      → exprStmt
+ *                | ifStmt
  *                | printStmt
+ *                | whileStmt
  *                | block ;
+ * whileStmt      → "while" "(" expression ")" statement ;
+ * ifStmt         → "if" "(" expression ")" statement
+ * ( "else" statement )? ;
  * block          → "{" declaration* "}" ;
  * exprStmt       → expression ";" ;
  * printStmt      → "print" expression ";" ;
  * expression     → assignment ;
  * assignment     → IDENTIFIER "=" assignment
- *                | equality;
+ *                | logic_or ;
+ * logic_or       → logic_and ( "or" logic_and )* ;
+ * logic_and      → equality ( "and" equality )* ;
  * equality       → comparison ( ( "!=" | "==" ) comparison )* ;
  * comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
  * term           → factor ( ( "-" | "+" ) factor )* ;
  * factor         → unary ( ( "/" | "*" ) unary )* ;
  * unary          → ( "!" | "-" ) unary
- *                | primary ;
+ * | primary ;
  * primary        → NUMBER | STRING | "true" | "false" | "nil"
- *                | "(" expression ")"
- *                | IDENTIFIER;
+ * | "(" expression ")"
+ * | IDENTIFIER;
  */
 public class Parser {
-    private static class ParseError extends RuntimeException {}
+    private static class ParseError extends RuntimeException {
+    }
 
     private final List<Token> tokens;
 
@@ -50,7 +58,7 @@ public class Parser {
 
         // the program is just a list of statements! see grammar rule:
         // program        → statement* EOF ;
-        while(!isAtEnd()) {
+        while (!isAtEnd()) {
             statements.add(declaration());
         }
 
@@ -64,7 +72,7 @@ public class Parser {
 
     // see http://craftinginterpreters.com/statements-and-state.html#assignment-syntax
     private Expr assignment() {
-        Expr expr = equality();
+        Expr expr = or();
 
         if (match(EQUAL)) {
             Token equals = previous();
@@ -75,11 +83,38 @@ public class Parser {
             Expr value = assignment();
 
             if (expr instanceof Expr.Variable) {
-                Token name = ((Expr.Variable)expr).name;
+                Token name = ((Expr.Variable) expr).name;
                 return new Expr.Assign(name, value);
             }
 
+            // We report an error if the left-hand side isn’t a valid assignment target,
+            // but we don’t throw it because the parser isn’t in a confused state where we need
+            // to go into panic mode and synchronize.
             error(equals, "Invalid assignment target.");
+        }
+
+        return expr;
+    }
+
+    private Expr or() {
+        Expr expr = and();
+
+        while (match(OR)) {
+            Token operator = previous();
+            Expr right = and();
+            expr = new Expr.Logical(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    private Expr and() {
+        Expr expr = equality();
+
+        while (match(AND)) {
+            Token operator = previous();
+            Expr right = equality();
+            expr = new Expr.Logical(expr, operator, right);
         }
 
         return expr;
@@ -113,13 +148,41 @@ public class Parser {
     }
 
     private Stmt statement() {
-        if(match(PRINT)) {
+        if (match(IF)) {
+            return ifStatement();
+        } else if (match(PRINT)) {
             return printStatement();
+        } else if (match(WHILE)) {
+            return whileStatement();
         } else if (match(LEFT_BRACE)) {
             return new Stmt.Block(block());
         } else {
             return expressionStatement();
         }
+    }
+
+    private Stmt whileStatement() {
+        consume(LEFT_PAREN, "Expect '(' after 'while'.");
+        Expr condition = expression();
+        consume(RIGHT_PAREN, "Expect ')' after condition.");
+        Stmt body = statement();
+
+        return new Stmt.While(condition, body);
+    }
+
+    private Stmt ifStatement() {
+        consume(LEFT_PAREN, "Expect '(' after 'if'.");
+        Expr condition = expression();
+        consume(RIGHT_PAREN, "Expect ')' after if condition.");
+
+        Stmt thenBranch = statement();
+        Stmt elseBranch = null;
+        if (match(ELSE)) {
+            // note: if there are multiple nested ifs, the else always applies to the closest one (innermost)
+            elseBranch = statement();
+        }
+
+        return new Stmt.If(condition, thenBranch, elseBranch);
     }
 
     private Stmt expressionStatement() {
@@ -205,7 +268,7 @@ public class Parser {
     // implements:
     // unary  → ( "!" | "-" ) unary
     //        | primary ;
-    private Expr unary(){
+    private Expr unary() {
         if (match(BANG, MINUS)) {
             Token operator = previous();
             Expr right = unary();
@@ -224,7 +287,7 @@ public class Parser {
         if (match(TRUE)) return new Expr.Literal(true);
         if (match(NIL)) return new Expr.Literal(null);
 
-        if(match(NUMBER, STRING)) {
+        if (match(NUMBER, STRING)) {
             return new Expr.Literal(previous().literal);
         }
 
@@ -245,7 +308,7 @@ public class Parser {
     // If so, consumes it and returns true.
     // Otherwise, leaves it alone and returns false.
     private boolean match(TokenType... types) {
-        for(TokenType type : types) {
+        for (TokenType type : types) {
             if (check(type)) {
                 advance();
                 return true;
@@ -306,7 +369,7 @@ public class Parser {
     private void synchronize() {
         advance();
 
-        while(!isAtEnd()) {
+        while (!isAtEnd()) {
             if (previous().type == SEMICOLON) {
                 // We found the end of the statement (aka a semicolon).
                 // Let's keep going.

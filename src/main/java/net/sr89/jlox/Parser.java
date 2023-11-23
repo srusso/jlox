@@ -203,20 +203,26 @@ public class Parser {
 
         Stmt body = statement();
 
+        return toWhileLoop(initializer, condition, increment, body);
+    }
+
+    private Stmt toWhileLoop(Stmt initializer, Expr condition, Expr increment, final Stmt forLoopBody) {
+        Stmt whileLoopBody = forLoopBody;
+
         if (increment != null) {
-            body = new Stmt.Block(
+            whileLoopBody = new Stmt.Block(
                 Arrays.asList(
-                    body,
+                    whileLoopBody,
                     new Stmt.Expression(increment)));
         }
 
-        body = new Stmt.While(condition, body);
+        whileLoopBody = new Stmt.While(condition, whileLoopBody);
 
         if (initializer != null) {
-            body = new Stmt.Block(Arrays.asList(initializer, body));
+            whileLoopBody = new Stmt.Block(Arrays.asList(initializer, whileLoopBody));
         }
 
-        return body;
+        return whileLoopBody;
     }
 
     private Stmt whileStatement() {

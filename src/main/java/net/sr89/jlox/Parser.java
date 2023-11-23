@@ -1,6 +1,7 @@
 package net.sr89.jlox;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static net.sr89.jlox.TokenType.*;
@@ -15,10 +16,14 @@ import static net.sr89.jlox.TokenType.*;
  *                | statement ;
  * varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
  * statement      → exprStmt
+ *                | forStmt
  *                | ifStmt
  *                | printStmt
  *                | whileStmt
  *                | block ;
+ * forStmt        → "for" "(" ( varDecl | exprStmt | ";" )
+ *                  expression? ";"
+ *                  expression? ")" statement ;
  * whileStmt      → "while" "(" expression ")" statement ;
  * ifStmt         → "if" "(" expression ")" statement
  * ( "else" statement )? ;
@@ -148,17 +153,70 @@ public class Parser {
     }
 
     private Stmt statement() {
+        if (match(FOR)) {
+            return forStatement();
+        }
         if (match(IF)) {
             return ifStatement();
-        } else if (match(PRINT)) {
+        }
+        if (match(PRINT)) {
             return printStatement();
-        } else if (match(WHILE)) {
+        }
+        if (match(WHILE)) {
             return whileStatement();
-        } else if (match(LEFT_BRACE)) {
+        }
+        if (match(LEFT_BRACE)) {
             return new Stmt.Block(block());
-        } else {
+        }
+        {
             return expressionStatement();
         }
+    }
+
+    private Stmt forStatement() {
+        consume(LEFT_PAREN, "Expect '(' after 'for'.");
+
+        final Stmt initializer;
+        if (match(SEMICOLON)) {
+            initializer = null;
+        } else if (match(VAR)) {
+            initializer = varDeclaration();
+        } else {
+            initializer = expressionStatement();
+        }
+
+        final Expr condition;
+        if (!check(SEMICOLON)) {
+            condition = expression();
+        } else {
+            condition = new Expr.Literal(true);
+        }
+        consume(SEMICOLON, "Expect ';' after loop condition.");
+
+        final Expr increment;
+        if (!check(RIGHT_PAREN)) {
+            increment = expression();
+        } else {
+            increment = null;
+        }
+        consume(RIGHT_PAREN, "Expect ')' after for clauses.");
+
+        Stmt body = statement();
+
+        if (increment != null) {
+            body = new Stmt.Block(
+                Arrays.asList(
+                    body,
+                    new Stmt.Expression(increment)));
+        }
+
+        body = new Stmt.While(condition, body);
+
+        if (initializer != null) {
+            body = new Stmt.Block(Arrays.asList(initializer, body));
+        }
+
+        return body;
     }
 
     private Stmt whileStatement() {

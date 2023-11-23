@@ -4,4 +4,4 @@ The jlox interpreter from the book [Crafting Interpreters](https://craftinginter
 
 Next up:
 
--- http://craftinginterpreters.com/control-flow.html#for-loops
+-- http://craftinginterpreters.com/functions.html#return-statements

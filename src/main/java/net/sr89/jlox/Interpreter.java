@@ -1,12 +1,25 @@
 package net.sr89.jlox;
 
+import net.sr89.jlox.nativ.ClockFunction;
+
+import java.util.ArrayList;
 import java.util.List;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
+
+    /**
+     * The global, or static, or whatever you wanna call it, environment.
+     */
+    final Environment globals = new Environment();
+
     /**
      * The current (innermost) environment.
      */
-    private Environment environment = new Environment();
+    private Environment environment = globals;
+
+    Interpreter() {
+        globals.define("clock", new ClockFunction());
+    }
 
     void interpret(List<Stmt> statements) {
         try {
@@ -74,6 +87,29 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
 
         return null;
+    }
+
+    @Override
+    public Object visitCallExpr(Expr.Call expr) {
+        Object callee = evaluate(expr.callee);
+
+        List<Object> arguments = new ArrayList<>();
+        for (Expr argument : expr.arguments) {
+            arguments.add(evaluate(argument));
+        }
+
+        if (!(callee instanceof LoxCallable function)) {
+            throw new RuntimeError(expr.paren,
+                "Can only call functions and classes.");
+        }
+
+        if (arguments.size() != function.arity()) {
+            throw new RuntimeError(expr.paren, "Expected " +
+                function.arity() + " arguments but got " +
+                arguments.size() + ".");
+        }
+
+        return function.call(this, arguments);
     }
 
     @Override
@@ -174,7 +210,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return null;
     }
 
-    private void executeBlock(List<Stmt> statements, Environment environment) {
+    public void executeBlock(List<Stmt> statements, Environment environment) {
         Environment previous = this.environment;
         try {
             this.environment = environment;
@@ -190,6 +226,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Void visitExpressionStmt(Stmt.Expression stmt) {
         evaluate(stmt.expression);
+        return null;
+    }
+
+    @Override
+    public Void visitFunctionStmt(Stmt.Function stmt) {
+        LoxFunction function = new LoxFunction(stmt);
+        environment.define(stmt.name.lexeme, function);
         return null;
     }
 

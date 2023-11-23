@@ -12,18 +12,22 @@ import static net.sr89.jlox.TokenType.*;
  * Implements the following grammar, from <a href="http://craftinginterpreters.com/parsing-expressions.html#ambiguity-and-the-parsing-game">this chapter</a>:
  * <p></p>
  * program        → declaration* EOF ;
- * declaration    → varDecl
- *                | statement ;
+ * declaration    → funDecl
+ * | varDecl
+ * | statement ;
+ * funDecl        → "fun" function ;
+ * function       → IDENTIFIER "(" parameters? ")" block ;
+ * parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
  * varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
  * statement      → exprStmt
- *                | forStmt
- *                | ifStmt
- *                | printStmt
- *                | whileStmt
- *                | block ;
+ * | forStmt
+ * | ifStmt
+ * | printStmt
+ * | whileStmt
+ * | block ;
  * forStmt        → "for" "(" ( varDecl | exprStmt | ";" )
- *                  expression? ";"
- *                  expression? ")" statement ;
+ * expression? ";"
+ * expression? ")" statement ;
  * whileStmt      → "while" "(" expression ")" statement ;
  * ifStmt         → "if" "(" expression ")" statement
  * ( "else" statement )? ;
@@ -32,15 +36,16 @@ import static net.sr89.jlox.TokenType.*;
  * printStmt      → "print" expression ";" ;
  * expression     → assignment ;
  * assignment     → IDENTIFIER "=" assignment
- *                | logic_or ;
+ * | logic_or ;
  * logic_or       → logic_and ( "or" logic_and )* ;
  * logic_and      → equality ( "and" equality )* ;
  * equality       → comparison ( ( "!=" | "==" ) comparison )* ;
  * comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
  * term           → factor ( ( "-" | "+" ) factor )* ;
  * factor         → unary ( ( "/" | "*" ) unary )* ;
- * unary          → ( "!" | "-" ) unary
- * | primary ;
+ * unary          → ( "!" | "-" ) unary | call ;
+ * call           → primary ( "(" arguments? ")" )* ;
+ * arguments      → expression ( "," expression )* ;
  * primary        → NUMBER | STRING | "true" | "false" | "nil"
  * | "(" expression ")"
  * | IDENTIFIER;
@@ -127,15 +132,42 @@ public class Parser {
 
     private Stmt declaration() {
         try {
-            if (match(VAR)) {
+            if (match(FUN)) return function(FunctionKind.FUNCTION);
+
+            if (match(VAR))
                 return varDeclaration();
-            } else {
-                return statement();
-            }
+
+            return statement();
         } catch (ParseError e) {
             synchronize();
             return null;
         }
+    }
+
+    private Stmt.Function function(FunctionKind kind) {
+        Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
+
+        consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
+        List<Token> parameters = new ArrayList<>();
+        if (!check(RIGHT_PAREN)) {
+            do {
+                if (parameters.size() >= 255) {
+                    error(peek(), "Can't have more than 255 parameters.");
+                }
+
+                parameters.add(
+                    consume(IDENTIFIER, "Expect parameter name."));
+            } while (match(COMMA));
+        }
+        consume(RIGHT_PAREN, "Expect ')' after parameters.");
+
+        // Note that we consume the { at the beginning of the body here before calling block().
+        // That’s because block() assumes the brace token has already been matched.
+        // Consuming it here lets us report a more precise error message if the { isn’t found,
+        // since we know it’s in the context of a function declaration.
+        consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
+        List<Stmt> body = block();
+        return new Stmt.Function(name, parameters, body);
     }
 
     private Stmt varDeclaration() {
@@ -338,8 +370,39 @@ public class Parser {
             Expr right = unary();
             return new Expr.Unary(operator, right);
         } else {
-            return primary();
+            return call();
         }
+    }
+
+    private Expr call() {
+        Expr expr = primary();
+
+        while (true) {
+            if (match(LEFT_PAREN)) {
+                expr = finishCall(expr);
+            } else {
+                break;
+            }
+        }
+
+        return expr;
+    }
+
+    private Expr finishCall(Expr callee) {
+        List<Expr> arguments = new ArrayList<>();
+        if (!check(RIGHT_PAREN)) {
+            do {
+                if (arguments.size() >= 255) {
+                    error(peek(), "Can't have more than 255 arguments.");
+                }
+                arguments.add(expression());
+            } while (match(COMMA));
+        }
+
+        Token paren = consume(RIGHT_PAREN,
+            "Expect ')' after arguments.");
+
+        return new Expr.Call(callee, paren, arguments);
     }
 
     // implements:

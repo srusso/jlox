@@ -269,6 +269,20 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Void visitReturnStmt(Stmt.Return stmt) {
+        Object value = null;
+
+        if (stmt.value != null) {
+            value = evaluate(stmt.value);
+        }
+
+        // we are handling return statements using exceptions.
+        // this will be caught by LoxFunction!
+        // well, that's a smart way of handling that. kudos to Robert Nystrom.
+        throw new Return(value);
+    }
+
+    @Override
     public Void visitWhileStmt(Stmt.While stmt) {
         while (isTruthy(evaluate(stmt.condition))) {
             execute(stmt.body);

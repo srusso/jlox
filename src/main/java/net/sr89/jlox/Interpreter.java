@@ -3,7 +3,9 @@ package net.sr89.jlox;
 import net.sr89.jlox.nativ.ClockFunction;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
@@ -16,6 +18,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
      * The current (innermost) environment.
      */
     private Environment environment = globals;
+
+    private final Map<Expr, Integer> locals = new HashMap<>();
 
     Interpreter() {
         globals.define("clock", new ClockFunction());
@@ -34,7 +38,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
         Object value = evaluate(expr.value);
-        environment.assign(expr.name, value);
+
+        Integer distance = locals.get(expr);
+        if (distance != null) {
+            environment.assignAt(distance, expr.name, value);
+        } else {
+            globals.assign(expr.name, value);
+        }
 
         // we are returning the value because in Lox, assignment is an expression
         // that returns the evaluated value
@@ -153,7 +163,16 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Object visitVariableExpr(Expr.Variable variable) {
-        return environment.get(variable.name);
+        return lookUpVariable(variable.name, variable);
+    }
+
+    private Object lookUpVariable(Token name, Expr variable) {
+        Integer distance = locals.get(variable);
+        if (distance != null) {
+            return environment.getAt(distance, name.lexeme);
+        } else {
+            return globals.get(name);
+        }
     }
 
     private void checkNumberOperand(Token operator, Object operand) {
@@ -202,6 +221,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     private void execute(Stmt statement) {
         statement.accept(this);
+    }
+
+    void resolve(Expr expr, int depth) {
+        locals.put(expr, depth);
     }
 
     @Override

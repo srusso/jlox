@@ -4,4 +4,4 @@ The jlox interpreter from the book [Crafting Interpreters](https://craftinginter
 
 Next up:
 
--- http://craftinginterpreters.com/resolving-and-binding.html#interpreting-resolved-variables
+-- http://craftinginterpreters.com/classes.html

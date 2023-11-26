@@ -15,6 +15,9 @@ import java.util.Stack;
  * <li>A function declaration introduces a new scope for its body and binds its parameters in that scope.</li>
  * <li>A variable declaration adds a new variable to the current scope.</li>
  * <li>Variable and assignment expressions need to have their variables resolved.</li>
+ *
+ * The whole job of this class can be summarized with:
+ * each time it visits a variable, it tells the interpreter how many scopes there are between the current scope and the scope where the variable is defined.
  */
 class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     private final Interpreter interpreter;
@@ -23,8 +26,15 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     // true value  = variable found and initialized/bound/resolved
     private final Stack<Map<String, Boolean>> scopes = new Stack<>();
 
+    private FunctionType currentFunction = FunctionType.NONE;
+
     Resolver(Interpreter interpreter) {
         this.interpreter = interpreter;
+    }
+
+    private enum FunctionType {
+        NONE,
+        FUNCTION
     }
 
     void resolve(List<Stmt> statements) {
@@ -53,6 +63,10 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         if (scopes.isEmpty()) return;
 
         Map<String, Boolean> scope = scopes.peek();
+        if (scope.containsKey(name.lexeme)) {
+            Lox.error(name,
+                "Already a variable with this name in this scope.");
+        }
         scope.put(name.lexeme, false);
     }
 
@@ -62,7 +76,10 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         scopes.peek().put(name.lexeme, true);
     }
 
-    private void resolveFunction(Stmt.Function function) {
+    private void resolveFunction(Stmt.Function function, FunctionType type) {
+        FunctionType enclosingFunction = currentFunction;
+        currentFunction = type;
+
         beginScope();
         for (Token param : function.params) {
             declare(param);
@@ -70,6 +87,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         }
         resolve(function.body);
         endScope();
+
+        currentFunction = enclosingFunction;
     }
 
     private void resolveLocal(Expr expr, Token name) {
@@ -163,7 +182,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         declare(stmt.name);
         define(stmt.name);
 
-        resolveFunction(stmt);
+        resolveFunction(stmt, FunctionType.FUNCTION);
         return null;
     }
 
@@ -193,6 +212,10 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitReturnStmt(Stmt.Return stmt) {
+        if (currentFunction == FunctionType.NONE) {
+            Lox.error(stmt.keyword, "Can't return from top-level code.");
+        }
+
         if (stmt.value != null) {
             resolve(stmt.value);
         }

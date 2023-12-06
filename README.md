@@ -4,4 +4,4 @@ The jlox interpreter from the book [Crafting Interpreters](https://craftinginter
 
 Next up:
 
--- http://craftinginterpreters.com/classes.html
+-- http://craftinginterpreters.com/classes.html#creating-instances

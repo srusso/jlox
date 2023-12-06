@@ -12,33 +12,35 @@ import static net.sr89.jlox.TokenType.*;
  * Implements the following grammar, from <a href="http://craftinginterpreters.com/parsing-expressions.html#ambiguity-and-the-parsing-game">this chapter</a>:
  * <p></p>
  * program        → declaration* EOF ;
- * declaration    → funDecl
- * | varDecl
- * | statement ;
+ * declaration    → classDecl
+ *                | funDecl
+ *                | varDecl
+ *                | statement ;
+ * classDecl      → "class" IDENTIFIER "{" function* "}" ;
  * funDecl        → "fun" function ;
  * function       → IDENTIFIER "(" parameters? ")" block ;
  * parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
  * varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
  * statement      → exprStmt
- * | forStmt
- * | ifStmt
- * | printStmt
- * | returnStmt
- * | whileStmt
- * | block ;
+ *                | forStmt
+ *                | ifStmt
+ *                | printStmt
+ *                | returnStmt
+ *                | whileStmt
+ *                | block ;
  * returnStmt     → "return" expression? ";" ;
  * forStmt        → "for" "(" ( varDecl | exprStmt | ";" )
- * expression? ";"
- * expression? ")" statement ;
+ *                  expression? ";"
+ *                  expression? ")" statement ;
  * whileStmt      → "while" "(" expression ")" statement ;
  * ifStmt         → "if" "(" expression ")" statement
- * ( "else" statement )? ;
+ *                ( "else" statement )? ;
  * block          → "{" declaration* "}" ;
  * exprStmt       → expression ";" ;
  * printStmt      → "print" expression ";" ;
  * expression     → assignment ;
  * assignment     → IDENTIFIER "=" assignment
- * | logic_or ;
+ *                | logic_or ;
  * logic_or       → logic_and ( "or" logic_and )* ;
  * logic_and      → equality ( "and" equality )* ;
  * equality       → comparison ( ( "!=" | "==" ) comparison )* ;
@@ -49,8 +51,8 @@ import static net.sr89.jlox.TokenType.*;
  * call           → primary ( "(" arguments? ")" )* ;
  * arguments      → expression ( "," expression )* ;
  * primary        → NUMBER | STRING | "true" | "false" | "nil"
- * | "(" expression ")"
- * | IDENTIFIER;
+ *                | "(" expression ")"
+ *                | IDENTIFIER;
  */
 public class Parser {
     private static class ParseError extends RuntimeException {
@@ -134,6 +136,8 @@ public class Parser {
 
     private Stmt declaration() {
         try {
+            if (match(CLASS)) return classDeclaration();
+
             if (match(FUN)) return function(FunctionKind.FUNCTION);
 
             if (match(VAR))
@@ -144,6 +148,20 @@ public class Parser {
             synchronize();
             return null;
         }
+    }
+
+    private Stmt classDeclaration() {
+        Token name = consume(IDENTIFIER, "Expect class name.");
+        consume(LEFT_BRACE, "Expect '{' before class body.");
+
+        List<Stmt.Function> methods = new ArrayList<>();
+        while (!check(RIGHT_BRACE) && !isAtEnd()) {
+            methods.add(function(FunctionKind.METHOD));
+        }
+
+        consume(RIGHT_BRACE, "Expect '}' after class body.");
+
+        return new Stmt.Class(name, methods);
     }
 
     private Stmt.Function function(FunctionKind kind) {

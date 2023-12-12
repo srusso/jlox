@@ -15,6 +15,20 @@ class LoxFunction implements LoxCallable {
     this.closure = closure;
   }
 
+  /**
+   * Creates a new instance of this function, bound to a specific object.
+   * So that 'this' will refer to that object.
+   *
+   * See {@link Resolver#visitClassStmt(Stmt.Class)}.
+   * The 'this' lives in a scope together with the methods.
+   * bind() (this method) is only called for lox methods, not functions.
+   */
+  LoxFunction bind(LoxInstance instance) {
+    Environment environment = new Environment(closure);
+    environment.define("this", instance);
+    return new LoxFunction(declaration, environment);
+  }
+
   @Override
   public int arity() {
     return declaration.params.size();

@@ -8,3 +8,13 @@ var a = "global";
   var a = "block";
   showA();
 }
+
+class Bacon {
+  eat() {
+    print this.style;
+  }
+}
+
+var a = Bacon();
+a.style = "crunch";
+a.eat();

@@ -10,7 +10,11 @@ class LoxFunction implements LoxCallable {
    */
   private final Environment closure;
 
-  LoxFunction(Stmt.Function declaration, Environment closure) {
+  private final boolean isInitializer;
+
+  LoxFunction(Stmt.Function declaration, Environment closure,
+              boolean isInitializer) {
+    this.isInitializer = isInitializer;
     this.declaration = declaration;
     this.closure = closure;
   }
@@ -26,7 +30,7 @@ class LoxFunction implements LoxCallable {
   LoxFunction bind(LoxInstance instance) {
     Environment environment = new Environment(closure);
     environment.define("this", instance);
-    return new LoxFunction(declaration, environment);
+    return new LoxFunction(declaration, environment, isInitializer);
   }
 
   @Override
@@ -44,8 +48,12 @@ class LoxFunction implements LoxCallable {
     try {
       interpreter.executeBlock(declaration.body, environment);
     } catch (Return returnValue) {
-      return returnValue.value;
+      if (isInitializer) return closure.getAt(0, "this");
+      else return returnValue.value;
     }
+
+    // If the function is an initializer, we override the actual return value and forcibly return 'this'
+    if (isInitializer) return closure.getAt(0, "this");
 
     return null;
   }

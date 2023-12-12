@@ -39,7 +39,7 @@ import static net.sr89.jlox.TokenType.*;
  * exprStmt       → expression ";" ;
  * printStmt      → "print" expression ";" ;
  * expression     → assignment ;
- * assignment     → IDENTIFIER "=" assignment
+ * assignment     → ( call "." )? IDENTIFIER "=" assignment
  *                | logic_or ;
  * logic_or       → logic_and ( "or" logic_and )* ;
  * logic_and      → equality ( "and" equality )* ;
@@ -48,7 +48,7 @@ import static net.sr89.jlox.TokenType.*;
  * term           → factor ( ( "-" | "+" ) factor )* ;
  * factor         → unary ( ( "/" | "*" ) unary )* ;
  * unary          → ( "!" | "-" ) unary | call ;
- * call           → primary ( "(" arguments? ")" )* ;
+ * call           → primary ( "(" arguments? ")" | "." IDENTIFIER )* ;
  * arguments      → expression ( "," expression )* ;
  * primary        → NUMBER | STRING | "true" | "false" | "nil"
  *                | "(" expression ")"
@@ -99,6 +99,9 @@ public class Parser {
             if (expr instanceof Expr.Variable) {
                 Token name = ((Expr.Variable) expr).name;
                 return new Expr.Assign(name, value);
+            } else if (expr instanceof Expr.Get) { // a little trick..
+                Expr.Get get = (Expr.Get)expr;
+                return new Expr.Set(get.object, get.name, value);
             }
 
             // We report an error if the left-hand side isn’t a valid assignment target,
@@ -417,6 +420,10 @@ public class Parser {
         while (true) {
             if (match(LEFT_PAREN)) {
                 expr = finishCall(expr);
+            } else if (match(DOT)) {
+                Token name = consume(IDENTIFIER,
+                    "Expect property name after '.'.");
+                expr = new Expr.Get(expr, name);
             } else {
                 break;
             }

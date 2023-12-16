@@ -4,4 +4,4 @@ The jlox interpreter from the book [Crafting Interpreters](https://craftinginter
 
 Next up:
 
--- http://craftinginterpreters.com/inheritance.html#calling-superclass-methods
+-- http://craftinginterpreters.com/a-bytecode-virtual-machine.html

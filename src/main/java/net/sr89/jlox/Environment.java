@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class Environment {
     // reference to the parent environment/scope
-    private final Environment enclosing;
+    final Environment enclosing;
     private final Map<String, Object> values = new HashMap<>();
 
     Environment() {

@@ -1,20 +1,14 @@
-var a = "global";
-{
-  fun showA() {
-    print a;
-  }
-
-  showA();
-  var a = "block";
-  showA();
-}
-
-class Bacon {
-  eat() {
-    print this.style;
+class Doughnut {
+  cook() {
+    print "Fry until golden brown.";
   }
 }
 
-var a = Bacon();
-a.style = "crunch";
-a.eat();
+class BostonCream < Doughnut {
+  cook() {
+    super.cook();
+    print "Pipe full of custard and coat with chocolate.";
+  }
+}
+
+BostonCream().cook();
